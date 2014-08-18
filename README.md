@@ -1,7 +1,7 @@
 # Minelib
 
 Minelib is a simple scala library that allows to connect to the the Query and the RCon services on a minecraft server. The only
-dependency is [sbinary](https://github.com/harrah/sbinary "sbinary on github") version 0.4.0 (see the build file for more details).
+dependency is [sbinary](https://github.com/harrah/sbinary "sbinary on github") version 0.4.3-SNAPSHOT (see the build file for more details).
 
 ## Example of a QueryClient invocation:
 

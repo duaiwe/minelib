@@ -58,7 +58,7 @@ case class FullStatsResponse(
 object QueryProtocol {
   import sbinary.DefaultProtocol.IntFormat
   import sbinary.DefaultProtocol.ShortFormat
-  
+
   trait NullTerminatedStringReader {
     def readString(in: Input, last: List[Char] = Nil): String = {
       val next = in.readByte
@@ -69,34 +69,34 @@ object QueryProtocol {
   implicit object ReadNullTerminatedString extends Reads[String] with NullTerminatedStringReader {
     def reads(in: Input) = readString(in)
   }
-  
+
   implicit object ReadKeyValuePairOption extends Reads[Option[(String, String)]] with NullTerminatedStringReader {
     def reads(in: Input) = {
       val firstByte = in.readByte
       val secondByte = in.readByte
-      
+
       val key = if (firstByte == 0x00.toByte && secondByte == 0x01.toByte) None else Some(readString(in, List(secondByte.toChar, firstByte.toChar)))
-      
+
       key.map(k => (k, read[String](in)))
     }
   }
-  
+
   implicit object ReadStringsMap extends Reads[Map[String, String]] {
     def readMap(in: Input, lastMap: Map[String, String] = Map.empty): Map[String, String] = read[Option[(String, String)]](in) match {
       case None => lastMap
-      case Some(pair) => readMap(in, lastMap + pair) 
+      case Some(pair) => readMap(in, lastMap + pair)
     }
-    
+
     def reads(in: Input) = readMap(in)
   }
-  
+
   implicit object ReadStringsList extends Reads[List[String]] {
     def readList(in: Input, lastList: List[String] = Nil): List[String] = {
       val nextString = read[String](in)
       if (nextString.isEmpty) lastList
       else readList(in, nextString :: lastList)
     }
-    
+
     def reads(in: Input) = readList(in)
   }
 
@@ -155,32 +155,32 @@ object QueryProtocol {
       )
     }
   }
-  
+
   implicit object ReadFullStatsResponse extends Reads[FullStatsResponse] {
     def reads(in: Input) = {
       assert(RequestType.fromByte(in.readByte) == RequestType.Status, "Request type is not status")
-      
+
       val sessionId = read[Int](in)
-      
-      val splitnumString = read[String](in) 
+
+      val splitnumString = read[String](in)
       assert(splitnumString == "splitnum", "Expected hardcoded string 'splitnum', got '" + splitnumString + "'")
-      
+
       val keyValStartFirstByte = in.readByte
       assert(keyValStartFirstByte == 0x80.toByte, "Expected byte 0x80, got " + "%02X".format(keyValStartFirstByte))
-      
+
       val keyValStartSecondByte = in.readByte
       assert(keyValStartSecondByte == 0x00.toByte, "Expected byte 0x00, got " + "%02X".format(keyValStartSecondByte))
-      
+
       val serverProperties = read[Map[String, String]](in)
-      
+
       val playerString = read[String](in)
       assert(playerString == "player_", "Expected hardcoded string 'player_', got '" + playerString + "'")
-      
+
       val paddingByte = in.readByte
       assert(paddingByte == 0x00.toByte, "Expected byte 0x00, got " + "%02X".format(paddingByte))
-      
+
       val players = read[List[String]](in)
-      
+
       FullStatsResponse(sessionId, serverProperties, players)
     }
   }
@@ -220,7 +220,7 @@ class QueryClient(val host: String, val port: Int) {
 
     fromByteArray[BasicStatsResponse](receivedPacket.getData)
   }
-  
+
   def fullStatus: FullStatsResponse = withConnection { sock =>
     val handshakeResponse = handshake(sock)
     sock.send(datagramPacket(toByteArray(StatsRequest.full(handshakeResponse.sessionId, handshakeResponse.token))))
